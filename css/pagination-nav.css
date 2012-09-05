@@ -1,0 +1,27 @@
+/* Default styles for twentytwelve */
+.pagination-nav {}
+
+	.pagination-nav ul {}
+
+		.pagination-nav li {
+			float: left;
+			list-style: none;
+			margin: 0 0 0 10px;
+		}
+
+		.pagination-nav li:first-child {
+			margin: 0;
+		}
+
+			.pagination-nav a {
+				text-decoration: none;
+			}
+
+			.pagination-nav .current-page {
+				text-decoration: underline;
+			}
+
+/* Removes default page links */
+.page-links {
+	display: none;
+}
