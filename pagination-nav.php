@@ -39,24 +39,63 @@ class Pagination_Nav {
 	function __construct()
 	{
 		add_action( 'init', array( $this, 'wp_register_style' ) );
-		add_filter( 'the_content', array( $this, 'the_content' ) );
+		add_filter( 'the_content', array( $this, 'the_content' ) ); # Remove the filter when you use the template tag
 		add_shortcode( 'paginationnav', array( $this, 'shortcode_paginationnav' ) );
 	}
 
 
 
 	/**
-	 * Register default styles
+	 * Template tag for displaying the navigation
 	 *
-	 * @access public
 	 * @return void
 	 * @author Ralf Hortt
 	 **/
-	public function wp_register_style()
+	static public function navigation( $return = FALSE )
 	{
-		wp_register_style( 'paginationnav', plugins_url( 'css/pagination-nav.css', __FILE__ ), FALSE, 'v0.1', 'all' );
-	}
+		global $post, $wp_query;
 
+		// No pagination
+		if ( FALSE === strpos( $post->post_content, '<!--nextpage-->') )
+			return;
+
+		// Do nothing if there is just one page
+		$temp = explode( '<!--nextpage-->', $post->post_content );
+		if ( 1 >= count( $temp ) )
+			return;
+
+		// Enqueue default style
+		wp_enqueue_style( 'paginationnav' );
+
+		// Build output
+		$output = '<nav class="pagination-nav">';
+		$output .= '<ul>';
+		$i = 1;
+
+		foreach ( $temp as $t ) :
+
+			$pattern = ( FALSE === strpos( $t, 'paginationnav' ) ) ? '(?<=<h[1-6]>).*(?=</h[1-6]>)' : '(?<=\[paginationnav title=").*(?="])';
+			preg_match( '&' . $pattern . '&Ui', $t, $headlines );
+			$headline = $headlines[0];
+
+			$link = ( 1 != $i ) ? get_permalink() . $i . '/' : get_permalink();
+			$class = ( $i == $wp_query->query_vars['page'] || ( 1 == $i && 0 == $wp_query->query_vars['page'] ) ) ? 'current-page' : '';
+
+			$output .= '<li class="' . $class . '"><a href="' . $link . '">' . $headline . '</a></li>';
+
+			$i++;
+
+		endforeach;
+		
+		$output .= '</ul>';
+		$output .= '</nav>';
+
+		if ( TRUE === $return ) :
+			return $output;
+		else :
+			echo $output;
+		endif;
+	}
 
 
 	/**
@@ -68,41 +107,13 @@ class Pagination_Nav {
 	 **/
 	public function the_content( $content )
 	{
-		global $post, $wp_query;
-		if ( FALSE === strpos( $post->post_content, '<!--nextpage-->') )
+		global $post;
+
+		if ( FALSE === strpos( $post->post_content, '<!--nextpage-->') ) :
 			return $content;
-
-		wp_enqueue_style( 'paginationnav' );
-
-		$temp = explode( '<!--nextpage-->', $post->post_content );
-
-		if ( 1 < count( $temp ) ) :
-
-			$output = '<nav class="pagination-nav">';
-			$output .= '<ul>';
-			$i = 1;
-
-			foreach ( $temp as $t ) :
-
-				$pattern = ( FALSE === strpos( $t, 'paginationnav' ) ) ? '(?<=<h[1-6]>).*(?=</h[1-6]>)' : '(?<=\[paginationnav title=").*(?="])';
-				preg_match( '&' . $pattern . '&Ui', $t, $headlines );
-				$headline = $headlines[0];
-
-				$link = ( 1 != $i ) ? get_permalink() . $i . '/' : get_permalink();
-				$class = ( $i == $wp_query->query_vars['page'] || ( 1 == $i && 0 == $wp_query->query_vars['page'] ) ) ? 'current-page' : '';
-
-				$output .= '<li class="' . $class . '"><a href="' . $link . '">' . $headline . '</a></li>';
-
-				$i++;
-
-			endforeach;
-			$output .= '</ul>';
-			$output .= '</nav>';
-
-			return $output.$content;
+		else :
+			return Pagination_Nav::navigation( TRUE ) . $content;
 		endif;
-
-		return $content;
 	}
 
 
@@ -122,6 +133,20 @@ class Pagination_Nav {
 		extract(shortcode_atts(array(
 			'title' => null
 		), $atts));
+	}
+
+
+
+	/**
+	 * Register default styles
+	 *
+	 * @access public
+	 * @return void
+	 * @author Ralf Hortt
+	 **/
+	public function wp_register_style()
+	{
+		wp_register_style( 'paginationnav', plugins_url( 'css/pagination-nav.css', __FILE__ ), FALSE, 'v0.1', 'all' );
 	}
 
 
